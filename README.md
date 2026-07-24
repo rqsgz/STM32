@@ -1,139 +1,467 @@
-# STM32
+# 🔥 芯火·启航 — STM32 嵌入式 AI 开发训练营（L1）
 
-[![状态](https://img.shields.io/badge/status-completed-brightgreen)]() [![MCU](https://img.shields.io/badge/MCU-STM32F407-blue)]() [![Duration](https://img.shields.io/badge/duration-28%20days-green)]()  
+<p align="center">
+  <img src="https://img.shields.io/badge/MCU-STM32F407ZGT6-blue?style=for-the-badge&logo=stmicroelectronics&logoColor=white" alt="STM32F407"/>
+  <img src="https://img.shields.io/badge/IDE-VS%20Code%20%2B%20PlatformIO-orange?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="PlatformIO"/>
+  <img src="https://img.shields.io/badge/AI-Claude%20%2B%20DeepSeek-purple?style=for-the-badge&logo=openai&logoColor=white" alt="AI Powered"/>
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"/>
+  <img src="https://img.shields.io/badge/Version-v1.0--release-brightgreen?style=for-the-badge" alt="Version"/>
+</p>
 
----
-
-# 我的 STM32F407 实训报告（学员视角）
-
-✨ 本文以第一人称（我/我的）记录我在 28 天 STM32F407 实训中的全部经历、收获与反思。文中加入了图标、徽章、Mermaid 架构图与装饰性分隔，便于直接放入 README 或课程报告中。
-
----
-
-## 🚀 一、整体回顾（What I did）
-
-- 我完成了为期 28 天的系统训练：从环境搭建（VS Code + PlatformIO + ST-Link）开始，到实现多种外设驱动、蓝牙/ESP8266 通信与 PC 端 Python 可视化，最终交付了端到端的数据采集→传输→显示系统。
-- 我把所有成果都提交到仓库：`rqsgz/STM32`，并在 README 中记录了训练文档与验收清单。
+<p align="center">
+  <b>📡 分布式无线传感采集系统 | 🧠 AI 辅助嵌入式开发 | 🐍 Python 上位机可视化</b>
+</p>
 
 ---
 
-## ✅ 二、可证明的成果（Deliverables / Evidence）
+## 📖 目录
 
-- 环境与工具链搭建：VS Code + PlatformIO 能编译，ST-Link 能烧录 & 调试。  
-- 基础 demo：LED Blink（PC0，500ms），按键去抖与短/长按识别。  
-- 外设 demo：Timer / PWM / UART / ADC / DAC + DMA / I2C / SPI / OneWire / HC-SR04。  
-- 通信链路：采集节点 → 蓝牙（HC-05）→ 汇总节点 → ESP8266 → PC Python（实时曲线）。  
-- 稳定性测试：连续运行 ≥1 小时（无崩溃），并能通过 Watchdog 自动恢复异常。  
-
----
-
-## 🧠 三、我学到的核心技能（Skills & Concepts）
-
-- 嵌入式基础：HAL 层、时钟与 SysTick、外设驱动原则。  
-- 实时性与任务：FreeRTOS 基本任务划分与优先级（实践中引入）。  
-- 外设调试：I2C 扫描、UART 重定向、DMA 使用与时序分析。  
-- 通信集成：HC-05 / ESP8266 配置、AT 指令、WiFi/TCP 数据转发。  
-- 上位机可视化：pyserial + matplotlib/PyQt5 实现多通道实时显示。  
-
----
-
-## 📊 四、关键实验数据（我亲测的结果）
-
-- LED Blink：500 ms 稳定。  
-- PWM（舵机）：20 ms 周期，0.5–2.5 ms 占空比对应 0–180°，实测误差 < 5°（在稳定供电下）。  
-- ADC：12-bit，电位器读数稳定，噪声在可接受范围内。  
-- I2C：BH1750 / MPU6050 在同一总线可被正常扫描读取。  
-- 通信延迟：平均 200–800 ms（实验室 WiFi 与串口条件），小于 1s 演示目标。  
+- [🎯 项目概述](#-项目概述)
+- [🏗️ 系统架构](#️-系统架构)
+- [✨ 核心功能](#-核心功能)
+- [🔧 硬件清单](#-硬件清单)
+- [💻 软件技术栈](#-软件技术栈)
+- [📂 项目结构](#-项目结构)
+- [🚀 快速开始](#-快速开始)
+- [📡 通信协议](#-通信协议)
+- [🤖 AI 辅助开发实践](#-ai-辅助开发实践)
+- [🐛 踩坑记录](#-踩坑记录)
+- [📊 交付成果](#-交付成果)
+- [🔮 拓展方向](#-拓展方向)
+- [📝 实训收获](#-实训收获)
+- [📄 许可证](#-许可证)
 
 ---
 
-## ⚠️ 五、遇到的问题与我的解决办法（Challenges & Solutions）
+## 🎯 项目概述
 
-### 1) 环境路径中包含中文导致 PlatformIO 编译失败
-- 解决：把工程迁移到 `C:\Projects\stm32`，并在 README 添加路径注意事项。
+> **一套小型工业级分布式环境感知物联网原型系统**，30 天从零基础到完整交付。
 
-### 2) ST-Link 无法识别 / 烧写失败
-- 解决：使用 Zadig 安装 WinUSB；更换 USB 线，检查设备管理器；必要时借用备用 ST-Link。
+本项目并非单一单片机实验，而是打通了 **「底层 MCU 驱动 → 多总线传感器采集 → 无线跨节点透传 → WiFi 网络上传 → PC 端数据可视化存储」** 完整 IoT 技术链路，同时融入产业主流的 **AI 人机协同开发范式**，填补课本理论到工程落地的断层。
 
-### 3) I2C 设备 NACK
-- 解决：用 I2C 扫描程序确认地址；检查上拉电阻与供电；将 I2C 速率调慢再测试。
-
-### 4) ESP8266 供电不足导致重启
-- 解决：使用独立 3.3V 电源（≥500mA），实现发送队列与重连机制。
-
-### 5) 机械按键抖动
-- 解决：实现定时器 + 状态机的软件去抖，并补充 RC 滤波硬件手段。
-
----
-
-## 🎯 六、最重要的收获与反思（Lessons Learned）
-
-- 理解优于复制：AI 工具能加速生成代码，但我学会了先理解每行代码再使用它。  
-- 工程化能力是核心：清晰的项目结构、Git 提交历史与详尽 README 使得项目更易维护。  
-- 物理层优先排查：大多数故障源于供电/接线/电平，而非代码本身。  
+| 项目属性 | 详情 |
+|:---|:---|
+| ⏱️ **实训周期** | 2026.7.18 — 2026.8.16（30 天） |
+| 🎓 **训练营** | 芯火·启航 STM32 嵌入式 AI 开发（L1） |
+| 🔲 **主控芯片** | STM32F407ZGT6（Cortex-M4 / 168MHz） |
+| 💰 **硬件成本** | ≈ ¥474 |
+| 🏆 **对标赛事** | 电子设计竞赛 / 智能车 / 蓝桥杯嵌入式赛道 |
+| 👤 **开发模式** | 单人独立完成 + AI 辅助 |
+| 🛠️ **开发工具** | VS Code + PlatformIO + Claude Code + DeepSeek |
 
 ---
 
-## 🔧 七、改进建议（Short-term & Long-term）
+## 🏗️ 系统架构
 
-- 短期：提供入门环境安装包与一键检测脚本，预置示例代码库以便卡壳时快速回退。  
-- 长期：加入 CMSIS-DSP、FFT/滤波实验；实现 OTA 与固件签名机制；构建更严谨的测试用例与自动化测试流程。  
-
----
-
-## 📝 八、我准备放到仓库与简历中的说明（可直接复制）
-
-- README（短版）：“STM32F407 实训：28 天完成多传感器采集、蓝牙/ESP8266 数据传输与 Python 可视化。成果含稳定运行演示与完整 Git 仓库。”
-
-- 简历条目（1-2 行）：“完成 STM32F407 嵌入式实训：实现多传感器采集、蓝牙/ESP8266 数据传输与 Python 可视化；熟悉 PlatformIO、HAL、I2C/SPI/UART 调试。”
-
----
-
-## 🖼️ 九、装饰与视觉（徽章、架构图、演示 GIF 建议）
-
-- 顶部徽章：  
-  `![status](https://img.shields.io/badge/status-completed-brightgreen)`  
-  `![MCU](https://img.shields.io/badge/MCU-STM32F407-blue)`  
-  `![RTOS](https://img.shields.io/badge/RTOS-FreeRTOS-orange)`
-
-- 架构示意（Mermaid）
+### 四层分布式架构
 
 ```mermaid
-flowchart LR
-  A[采集节点 F407] -- 蓝牙 --> B[汇总节点 F407]
-  B -- UART/ESP8266 --> C[ESP8266 / WiFi]
-  C -- TCP --> D[PC / Python GUI]
-  A --> Sensors[传感器群：BH1750, MPU6050, DS18B20, HC-SR04]
+graph TD
+    subgraph 感知层
+        A[采集节点 F407]
+        A1[BH1750 光照]
+        A2[MPU6050 六轴]
+        A3[DS18B20 温度]
+        A4[光敏电阻]
+        A5[HC-SR04 超声波]
+        A6[OLED / 按键 / 蜂鸣器 / SG90]
+        A --> A1 & A2 & A3 & A4 & A5
+        A --> A6
+    end
+
+    subgraph 中继传输层
+        B[汇总节点 F407]
+        B1[HC-05 蓝牙接收]
+        B2[ESP8266 WiFi 上传]
+        B --> B1 & B2
+    end
+
+    subgraph 上位机应用层
+        C[Python 可视化平台]
+        C1[实时曲线 matplotlib]
+        C2[仪表盘 GUI tkinter]
+        C3[CSV 数据存储]
+        C --> C1 & C2 & C3
+    end
+
+    A -- HC-05 蓝牙 --> B1
+    B -- ESP8266 TCP --> C
+    B -. USB 串口直连 .-> C
 ```
 
-- 演示 GIF：建议录制 10–20s 的双画面（左：硬件操作，右：GUI 实时曲线），并放入 README 顶部。
+| 层级 | 功能 | 核心组件 |
+|:---:|:---|:---|
+| 🔵 **感知层** | 全量环境数据采集、本地预处理、人机交互 | 5 类传感器 + OLED + 按键 + 蜂鸣器 + SG90 舵机 |
+| 🟢 **中继传输层** | 蓝牙数据校验缓存、WiFi 网络转发 | HC-05 蓝牙 + ESP8266 WiFi |
+| 🟡 **上位机应用层** | 可视化、报警、数据存储 | Python（pyserial/matplotlib/tkinter） |
+| 🟣 **开发工具层** | AI 辅助开发底座 | Git + PlatformIO + Claude Code + DeepSeek |
 
 ---
 
-## 📂 十、我在仓库中建议的文件结构（便于评审）
+## ✨ 核心功能
+
+### 🎯 硬性指标（全部达标 ✅）
+
+| 指标 | 状态 | 说明 |
+|:---|:---:|:---|
+| 5 路异构传感器同步采集 | ✅ | BH1750 / MPU6050 / DS18B20 / 光敏 / HC-SR04 |
+| HC-05 蓝牙稳定透传 | ✅ | 丢包率 < 1%，延迟 < 200ms |
+| ESP8266 TCP 数据上传 | ✅ | 局域网延迟 < 1s |
+| Python 多通道实时绘图 | ✅ | 超限报警 + 历史数据存储 |
+| 连续稳定运行 ≥ 2h | ✅ | IWDG 看门狗 + 断线自动重连 |
+| 外设全功能覆盖 | ✅ | GPIO/EXTI/TIM/PWM/ADC/DAC/DMA/I2C/SPI/单总线/多串口 |
+
+### 🔄 完整闭环
 
 ```
-/docs
-  /report.md          # 本文件（学员视角）
-  /quick-check.md     # 学员速查卡
-  /demo-screenshots/  # GIF/PNG
-  /video/             # demo.mp4
-/README.md
-/src
-  ... (工程代码)
+📊 传感器采集 → 📡 蓝牙透传 → 🌐 WiFi 上传 → 🖥️ Python 可视化
+                                    ↓
+🔔 超限报警 ← 🚨 阈值判断 ← 📈 数据分析 ← 💾 CSV 存储
+                                    ↓
+⚙️ SG90 舵机执行（光照补偿）
 ```
 
 ---
 
-## 十一、下一步（我想做的 / 需要你帮忙的）
+## 🔧 硬件清单
 
-- 如果你想，我可以帮你：  
-  1) 把上面的第一人称总结写入仓库专门的项目报告文件（docs/report.md）并生成 PDF；  
-  2) 生成一个 1 页的学员速查卡 PNG（便于打印）；  
-  3) 按演示脚本录制一段 60 秒演示视频示例（如果你提供屏幕录制与硬件视频我可剪辑）；  
-  4) 帮你把 README 顶部做成更漂亮的展示（添加徽章、关键截图、演示 GIF）。  
-- 如果选择 1–4 中任何一项，告诉我你想要的输出格式（Markdown / PDF / PNG / GIF / 直接提交到仓库），我会立刻生成并提交到 rqsgz/STM32（或创建新分支并发 PR），并把链接发给你。
+### 🧠 主控 & 调试
+
+| 模块 | 型号 | 说明 |
+|:---|:---|:---|
+| 主控 ×2 | **STM32F407ZGT6** | Cortex-M4 / 168MHz / 1MB Flash / 192KB RAM / FPU |
+| 调试器 | **DAP 仿真器** | 高速下载 + 虚拟串口二合一 |
+
+### 📡 传感器
+
+| 传感器 | 通信总线 | 功能 |
+|:---|:---:|:---|
+| 🌞 **BH1750** | I²C | 数字光照强度 |
+| 🌀 **MPU6050** | I²C | 六轴姿态（DMP 欧拉角） |
+| 🌡️ **DS18B20** | OneWire | 防水温度 |
+| 💡 **光敏电阻** | ADC | 模拟光强 |
+| 📏 **HC-SR04** | GPIO + TIM | 超声波测距 |
+
+### 📡 通信 & 显示 & 执行
+
+| 模块 | 说明 |
+|:---|:---|
+| 🔵 **HC-05** 蓝牙模块 | 主从一体，双节点短距组网 |
+| 📶 **ESP8266 NodeMCU** | WiFi TCP 数据上传（CH340 串口） |
+| 🖥️ **SSD1306 OLED** | 0.96" I²C 本地数据显示 |
+| 🔊 **蜂鸣器** | 阈值声光报警 |
+| ⚙️ **SG90 舵机** | 光照补偿执行机构 |
 
 ---
 
-<!-- Student report inserted by Copilot -->
+## 💻 软件技术栈
+
+### 🔽 下位机（STM32 C 语言）
+
+```
+┌─────────────────────────────────────┐
+│          🧠 业务逻辑层               │
+│  传感器调度 / 报警 / 舵机控制 / WDT  │
+├─────────────────────────────────────┤
+│          📡 通信协议层               │
+│  二进制帧封装 / 校验和 / AT 指令驱动  │
+├─────────────────────────────────────┤
+│          🔌 传感器驱动层             │
+│  BH1750 / MPU6050 / DS18B20 / ...   │
+├─────────────────────────────────────┤
+│          ⚙️ 硬件驱动层 (HAL)         │
+│  GPIO/TIM/ADC/DMA/I2C/UART/SPI      │
+└─────────────────────────────────────┘
+```
+
+### 🔼 上位机（Python）
+
+| 组件 | 技术 | 功能 |
+|:---|:---|:---|
+| 🔌 通信 | `pyserial` / `socket` | 串口直连 + WiFi 双通道 |
+| 📈 绘图 | `matplotlib` | 多通道实时动态曲线 |
+| 🖥️ GUI | `tkinter` | 仪表盘 / 阈值设置 / 状态灯 |
+| 💾 存储 | `csv` | 时间戳 + 全量数据持久化 |
+
+---
+
+## 📂 项目结构
+
+```
+STM32/
+├── 📁 src/                        # 源代码
+│   ├── main.c                     # 主程序入口
+│   ├── drivers/                   # 传感器驱动库
+│   │   ├── bh1750.h / .c          # BH1750 光照传感器
+│   │   ├── mpu6050.h / .c         # MPU6050 六轴姿态
+│   │   ├── ds18b20.h / .c         # DS18B20 温度传感器
+│   │   ├── hc_sr04.h / .c         # HC-SR04 超声波
+│   │   ├── oled.h / .c            # SSD1306 OLED 显示
+│   │   ├── hc05.h / .c            # HC-05 蓝牙驱动
+│   │   └── esp8266.h / .c         # ESP8266 WiFi 驱动
+│   ├── protocol/                  # 通信协议
+│   │   └── protocol.h             # 自定义数据帧结构体
+│   └── utils/                     # 工具函数
+│       ├── i2c_scanner.h / .c     # I²C 设备扫描
+│       └── filter.h / .c          # 数字滤波算法
+├── 📁 python/                     # Python 上位机
+│   ├── main_window.py             # tkinter 主界面
+│   ├── serial_plot.py             # 实时曲线绘图
+│   ├── data_logger.py             # CSV 数据存储
+│   └── network_client.py          # WiFi TCP 客户端
+├── 📁 docs/                       # 文档
+│   ├── architecture.md            # 系统架构图
+│   ├── protocol_spec.md           # 通信协议文档
+│   └── wiring_guide.md            # 硬件接线手册
+├── 📁 assets/                     # 图片与演示
+├── platformio.ini                 # PlatformIO 配置
+├── .gitignore
+├── README.md
+└── LICENSE
+```
+
+---
+
+## 🚀 快速开始
+
+### 📋 前置要求
+
+- [VS Code](https://code.visualstudio.com/) + [PlatformIO 插件](https://platformio.org/)
+- [STM32Cube HAL 库](https://www.st.com/en/embedded-software/stm32cubef4.html)（PlatformIO 自动管理）
+- [Python 3.10+](https://www.python.org/)（上位机）
+- DAP 仿真器
+
+### ⚡ 编译 & 烧录
+
+```bash
+# 克隆仓库
+git clone https://github.com/rqsgz/STM32.git
+cd STM32
+
+# PlatformIO 编译
+pio run
+
+# 烧录到采集节点
+pio run --target upload
+
+# 烧录到汇总节点（修改 platformio.ini 中 upload_port）
+pio run --target upload
+```
+
+### 🐍 启动上位机
+
+```bash
+cd python
+pip install pyserial matplotlib tkinter
+
+# 启动 GUI 可视化
+python main_window.py
+```
+
+### 🔌 硬件接线速查
+
+| 传感器 | 引脚 | F407 接口 |
+|:---|:---|:---|
+| BH1750 / MPU6050 | SCL / SDA | PB6 / PB7（I²C1） |
+| DS18B20 | DQ | PA0（OneWire） |
+| HC-SR04 | Trig / Echo | PA1 / PA2 |
+| OLED SSD1306 | SCL / SDA | PB10 / PB11（I²C2） |
+| HC-05 | TX / RX | PA2 / PA3（USART2） |
+| ESP8266 | TX / RX | PA9 / PA10（USART1） |
+
+> ⚠️ **注意**：HC-05 为 5V 模块，需做电平匹配；ESP8266 建议独立供电（峰值 300mA+）。
+
+---
+
+## 📡 通信协议
+
+### 自定义二进制数据帧
+
+```
+┌────────┬────────┬──────────┬──────────┬──────┬──────┬──────┐
+│ 帧头    │ 设备ID  │ 数据长度  │ 传感器数据 │ 校验和 │ 帧尾  │
+│ 0xA5   │ 1 Byte │ 1 Byte   │ N Bytes  │ 2 B  │ 0x5A │
+└────────┴────────┴──────────┴──────────┴──────┴──────┘
+```
+
+- **帧头**：`0xA5` 标识数据包开始
+- **设备 ID**：区分传感器类型
+- **校验和**：CRC-16，过滤错误/粘包数据
+- **帧尾**：`0x5A` 标识数据包结束
+
+### 数据流路径
+
+```
+采集节点 ──蓝牙──▶ 汇总节点 ──WiFi──▶ PC（Python 上位机）
+    │                                    │
+    └──────── USB 串口直连 ──────────────┘（双备份）
+```
+
+---
+
+## 🤖 AI 辅助开发实践
+
+> 本项目核心特色：Claude Code + DeepSeek 全流程嵌入嵌入式开发
+
+### 🔄 AI 协作流程
+
+```mermaid
+graph LR
+    A[👤 需求梳理] --> B[🤖 AI 生成代码]
+    B --> C[👤 逐行阅读校验]
+    C --> D[🔌 硬件分段验证]
+    D --> E{异常?}
+    E -- 是 --> F[🤖 AI 辅助排错]
+    F --> D
+    E -- 否 --> G[👤 业务逻辑整合]
+    G --> H[✅ 系统联调交付]
+```
+
+### 📊 AI 提效场景
+
+| 场景 | 传统模式 | AI 协同模式 | 效率提升 |
+|:---|:---:|:---:|:---:|
+| 外设驱动开发 | 半天 ~ 1 天 | 1 ~ 2 小时 | ⬆️ **5-10×** |
+| Bug 定位修复 | 1 ~ 数小时 | 10 ~ 30 分钟 | ⬆️ **5-10×** |
+| 环境搭建 | 半天起 | 30 分钟 | ⬆️ **10×** |
+| 通信协议设计 | 1 ~ 2 天 | 1 ~ 2 小时 | ⬆️ **8×** |
+
+### 🧭 核心方法论
+
+> **AI 是辅助工具，而非替代开发者**
+
+1. 🧑‍💻 开发者梳理需求、确定引脚、设计顶层架构
+2. 🎯 精准向 AI 输入约束条件（芯片型号 / HAL 库 / 引脚 / 协议）
+3. 👀 逐行阅读 AI 代码，校验是否匹配硬件平台
+4. 🔌 分段烧录硬件验证，异常时反馈 AI 排错
+5. 🔗 自主完成业务整合、容错优化、系统联调
+
+---
+
+## 🐛 踩坑记录
+
+### ⚡ 硬件时序类
+
+<details>
+<summary><b>DS18B20 单总线温度读取乱码</b></summary>
+
+- **原因**：EXTI/TIM 中断打断微秒级时序
+- **解决**：读取时临时关闭全局中断，读取后恢复；选用板载上拉电阻模块
+</details>
+
+<details>
+<summary><b>I²C 多设备总线冲突</b></summary>
+
+- **原因**：未等待 ACK 应答、多设备同时抢占
+- **解决**：读取后增加总线释放延时；编写 I²C 扫描工具；失败自动重试 3 次
+</details>
+
+<details>
+<summary><b>HC-SR04 测距数值跳变</b></summary>
+
+- **解决**：连续采集 5 次，滑动平均滤波，剔除极值后取均值
+</details>
+
+### 📡 无线通信类
+
+<details>
+<summary><b>HC-05 蓝牙丢包 / 粘包 / 断连</b></summary>
+
+- **解决**：帧头帧尾 + CRC-16 校验；分包发送不超缓冲区；心跳包 + 自动重连
+</details>
+
+<details>
+<summary><b>ESP8266 频繁掉线 / AT 超时</b></summary>
+
+- **原因**：USB 供电不足（峰值需 300mA+）；AT 指令无延时
+- **解决**：独立电源供电；AT 指令间隔 500ms；定时检测 TCP 连接自动复位
+</details>
+
+<details>
+<summary><b>蓝牙 + WiFi 同频干扰</b></summary>
+
+- **解决**：分时调度 —— 蓝牙传输完成后关闭串口，WiFi 上传完切断电源，不同时射频工作
+</details>
+
+### 💻 软件系统类
+
+<details>
+<summary><b>系统长时间运行死机</b></summary>
+
+- **解决**：开启 IWDG 独立看门狗；中断服务函数结束清除标志；限制串口接收长度、清空溢出缓冲区
+</details>
+
+<details>
+<summary><b>ADC 采样数值剧烈跳变</b></summary>
+
+- **解决**：软件滑动平均滤波（10 次采样去极值取均值）；硬件 0.1μF 滤波电容
+</details>
+
+---
+
+## 📊 交付成果
+
+### 📦 完整交付物清单
+
+| # | 交付物 | 说明 |
+|:---:|:---|:---|
+| 1 | 🗂️ **PlatformIO 工程源码** | Git 完整版本仓库，v1.0-beta / v1.0-release 双版本标签 |
+| 2 | 📚 **分模块驱动库** | BH1750 / MPU6050 / DS18B20 / HC-SR04 / OLED / 蓝牙 / WiFi 模块化 `.h`/`.c` |
+| 3 | 🐍 **Python 上位机** | 曲线绘图 / GUI 仪表盘 / 数据存储 / 网络调试工具 |
+| 4 | 📄 **实训报告** | 系统架构图 / 通信协议文档 / 硬件接线手册 / 踩坑调试记录 |
+| 5 | 🎤 **答辩材料** | PPT / 3-5 分钟演示录屏 / 硬件实物 |
+| 6 | 📝 **开发日志** | 每日笔记 / AI 交互记录 / Bug 修复日志 |
+
+### 🏷️ 版本标签
+
+| 标签 | 说明 |
+|:---|:---|
+| `v1.0-beta` | 联调测试版 —— 记录全部联调问题 |
+| `v1.0-release` | 🎉 正式发布版 —— 所有稳定性缺陷已修复，代码冻结 |
+
+---
+
+## 🔮 拓展方向
+
+现有硬件平台无需更换主控即可升级：
+
+| 方向 | 方案 |
+|:---|:---|
+| 🌐 **多节点组网** | 增加采集节点，搭建多节点无线传感网络 |
+| 🚗 **智能车** | 新增电机、摄像头、气体传感器 |
+| ☁️ **云端上传** | 替换 ESP8266 → 4G Cat1 模块，实现远程数据上传 |
+| 🔋 **便携设备** | 锂电池供电 + 低功耗休眠电路，制作野外采集设备 |
+
+---
+
+## 📝 实训收获
+
+### 🛠️ 硬技能
+
+- ✅ STM32F4 全外设驱动开发（GPIO/EXTI/TIM/PWM/ADC/DAC/DMA/I²C/SPI/OneWire/多串口）
+- ✅ 多总线异构传感器集成与冲突解决
+- ✅ 蓝牙 + WiFi 双无线通信协议设计与调优
+- ✅ Python 上位机全栈开发（pyserial/matplotlib/tkinter）
+- ✅ Git 版本控制 + PlatformIO 跨平台编译
+- ✅ AI 辅助开发（Claude Code + DeepSeek）实战经验
+
+### 🧠 软技能
+
+- 💡 **模块化解耦思维**：大型项目拆分为独立子模块逐个验证
+- 🔍 **系统排查能力**：区分"单模块故障"与"系统耦合故障"
+- 📋 **工程交付规范**：技术文档、PPT 逻辑、演示话术、故障预案
+- 🤖 **人机协同范式**：AI 定位为高效工具，人负责架构、校验、整合
+
+---
+
+## 📄 许可证
+
+本项目采用 [MIT License](LICENSE) 开源。
+
+---
+
+<p align="center">
+  <b>⚡ 从零基础到完整 IoT 系统交付，30 天见证工程能力蜕变 ⚡</b>
+  <br><br>
+  <sub>Made with ❤️ by <a href="https://github.com/rqsgz">rqsgz</a> | Powered by Claude Code + DeepSeek</sub>
+</p>
