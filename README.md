@@ -730,7 +730,6 @@ graph LR
 ---
 
 <p align="center">
-  <b>⚡ 从零基础到完整 IoT 系统交付，30 天见证工程能力蜕变 ⚡</b>
   <br><br>
   <sub>Made with ❤️ by <a href="https://github.com/rqsgz">rqsgz</a> | Powered by Claude Code + DeepSeek</sub>
 </p>
