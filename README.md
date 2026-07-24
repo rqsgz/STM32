@@ -478,6 +478,203 @@ for (uint8_t a = 1; a < 127; a++) {
 
 ---
 
+### 🔧 按键消抖：从硬编码到通用函数
+
+按键消抖是嵌入式最基础也最容易写错的逻辑。项目中展示了从"专用消抖"到"通用函数"的进化：
+
+**早期写法（led3.c）：每个按键独立一套消抖变量**
+
+```c
+// KEY0 和 KEY_UP 各自维护 prev、debounce，代码重复
+static uint8_t key0_prev = 0, keyup_prev = 0;
+static uint32_t key0_debounce = 0, keyup_debounce = 0;
+
+if (key0_now != key0_prev) {
+    key0_debounce++;
+    if (key0_debounce > 10) {          // 10ms 消抖窗口
+        key0_prev = key0_now;
+        key0_debounce = 0;
+        if (key0_now == 1) { /* 按下 */ }
+    }
+}
+```
+
+**进阶写法（调整频率.c / 定时器捕捉时长.c）：提取为通用函数**
+
+```c
+// 一个函数处理任意 GPIO 引脚，参数化 prev 和 debounce 计数器
+static int key_edge(GPIO_TypeDef *port, uint16_t pin,
+                    uint8_t *prev, uint8_t *db) {
+    uint8_t now = (port->IDR & pin) ? 1 : 0;
+    if (now != *prev) {
+        (*db)++;
+        if (*db > 30) { *prev = now; *db = 0; if (now) return 1; }  // 30ms 窗口
+    } else *db = 0;
+    return 0;  // 无有效边沿
+}
+
+// 调用端只需为每个按键维护两个 uint8_t
+uint8_t k0p = 0, k0d = 0;
+if (key_edge(GPIOE, GPIO_PIN_4, &k0p, &k0d)) { /* KEY0 按下 */ }
+```
+
+> 🎓 消抖窗口从 10ms（led3.c）变为 30ms（调整频率.c），说明实践中发现轻触按键抖动持续时间比预期更长，根据实际硬件调整参数是嵌入式常态。
+
+---
+
+### 🖥️ OLED 显示：从点阵原理到中文渲染
+
+`小显示器显示.c` 是项目中代码量最大的单一文件（355 行），完整实现了：
+
+| 功能层 | 实现方式 | 容量 |
+|:---|:---|:---|
+| 软件 I²C 通信 | 开漏输出 + GPIO 位带操作 | ~60 行 |
+| SSD1306 初始化序列 | 25 条命令逐条发送 | 参考数据手册第 8 章 |
+| 显存管理 | `uint8_t oled_buf[128*8]` 1024 字节 | 128×64 ÷ 8 页 |
+| 5×7 ASCII 字体 | 95 个可打印字符，每个 5 字节 | ~475 字节 Flash |
+| 16×16 中文字符 | 手动取模 5 个汉字（你好陈仲卿） | 每个 32 字节 |
+| 16×18 爱心图案 | 位图取模 | 36 字节 |
+| 动画循环 | 100ms 刷新切换画面 | — |
+
+**OLED 显存寻址**
+
+SSD1306 将 64 像素高分为 8 个"页"（Page），每页 8 像素高 × 128 像素宽。写入时按页操作：
+
+```c
+// 画点: 计算目标像素在显存中的字节位置和 bit 偏移
+static void oled_pixel(int x, int y, int color) {
+    if (x < 0 || x >= 128 || y < 0 || y >= 64) return;  // 边界保护
+    if (color)
+        oled_buf[x + (y / 8) * 128] |=  (1 << (y % 8));  // 置位 = 亮
+    else
+        oled_buf[x + (y / 8) * 128] &= ~(1 << (y % 8));  // 清零 = 灭
+}
+
+// 全屏刷新: 8 个 Page 依次发送
+static void oled_refresh(void) {
+    for (int page = 0; page < 8; page++) {
+        oled_cmd(0xB0 + page);   // 设置页地址 (0xB0~0xB7)
+        oled_cmd(0x00);          // 列地址低 4 位
+        oled_cmd(0x10);          // 列地址高 4 位
+        oled_data(oled_buf + page * 128, 128);  // 一次发送 128 字节
+    }
+}
+```
+
+**中文字模取模原理**
+
+16×16 中文点阵数据为从网上下载的 GB2312 字模，每字 32 字节（16行 × 2字节/行）：
+
+```c
+// "你" 的 16×16 点阵数据，每 2 字节 = 一行的 16 个像素
+static const uint8_t cn_font[5][32] = {
+    {/* 你 */ 0x00,0x80, 0x00,0x80, 0x20,0x80, 0x10,0x80, ...},
+    {/* 好 */ 0x10,0x00, 0x11,0xFC, ...},
+    {/* 陈 */ ...}, {/* 仲 */ ...}, {/* 卿 */ ...},
+};
+
+// 渲染函数：按行扫描，高位在前（MSB first）
+static void oled_cn_char(int x, int y, int idx) {
+    const uint8_t *b = cn_font[idx];
+    for (int row = 0; row < 16; row++) {
+        uint16_t line = (b[row*2] << 8) | b[row*2+1];   // 拼接一行 16bit
+        for (int col = 0; col < 16; col++)
+            if (line & (0x8000 >> col))                   // 逐位检测是否描点
+                oled_pixel(x + col, y + row, 1);
+    }
+}
+```
+
+---
+
+### ⏱️ 定时器输入捕获：SysTick + EXTI 双重计时
+
+`定时器捕捉时长.c` 展示了嵌入式常见的"混合计时"技巧——用 SysTick 做粗粒度毫秒计时，用 EXTI 双边沿捕获精确的事件时刻：
+
+```
+按键按下（上升沿）               按键松开（下降沿）
+    │                                │
+    ▼                                ▼
+┌──────────────────────────────────────┐
+│  EXTI 中断:                          │
+│  上升沿 → 记录 press_start           │
+│  切换触发边沿为下降沿                │
+│  下降沿 → 记录 press_end             │
+│  切换回上升沿，置 press_done = 1     │
+│                                      │
+│  press_start / press_end 来自        │
+│  SysTick 每 1ms 自增的 tick_ms      │
+└──────────────────────────────────────┘
+```
+
+关键细节——**边沿动态切换**：
+
+```c
+void EXTI4_IRQHandler(void) {
+    if (EXTI->PR & EXTI_PR_PR4) {
+        EXTI->PR = EXTI_PR_PR4;
+        if (GPIOE->IDR & GPIO_PIN_4) {
+            press_start = tick_ms;                         // 记录按下时刻
+            EXTI->FTSR |= EXTI_FTSR_TR4;                  // 改为下降沿触发
+            EXTI->RTSR &= ~EXTI_RTSR_TR4;
+        } else {
+            press_end = tick_ms; press_done = 1;           // 记录松开时刻
+            EXTI->RTSR |= EXTI_RTSR_TR4;                  // 改回上升沿
+            EXTI->FTSR &= ~EXTI_FTSR_TR4;
+        }
+    }
+}
+```
+
+**应用**：根据按下时长改变 LED 闪烁频率——短按 5Hz、中按 2Hz、长按 1Hz，实现了"同一按键不同行为"的人机交互。
+
+**SysTick 回调溢出处理**：
+
+```c
+// 处理 32 位 tick 回绕（约 49 天后溢出）
+if (press_end > press_start)
+    ms = press_end - press_start;
+else
+    ms = (0xFFFFFFFF - press_start) + press_end;  // 溢出情况：补码计算
+```
+
+---
+
+### 🔢 HAL 库与寄存器混合编程
+
+项目中存在一条清晰的编程范式演变线：
+
+```
+led3.c (HAL 库)  →  调整频率.c (寄存器)  →  采集节点.c (纯寄存器)
+```
+
+**HAL 方式（led3.c）**— 入门友好，代码自解释：
+
+```c
+static void MX_GPIO_Init(void) {
+    GPIO_InitTypeDef gpio = {0};
+    gpio.Mode  = GPIO_MODE_OUTPUT_PP;
+    gpio.Pull  = GPIO_NOPULL;
+    gpio.Pin   = GPIO_PIN_9;
+    HAL_GPIO_Init(GPIOF, &gpio);
+}
+```
+
+**寄存器方式（调整频率.c 起）**— 一行搞定，无需结构体：
+
+```c
+GPIOF->MODER &= ~GPIO_MODER_MODER10;
+GPIOF->MODER |=  (1 << (10*2));     // PF10 = 推挽输出
+GPIOF->BSRR = GPIO_PIN_10;          // 初始灭
+```
+
+寄存器操作的三个优势：
+1. **代码量**：GPIO 初始化从 6 行 HAL 缩减为 2 行寄存器
+2. **执行速度**：绕过 HAL 函数调用开销，ISR 中尤其关键
+3. **可移植性**：不依赖 STM32 HAL 版本，任何 Cortex-M 芯片通用
+
+---
+
 ### 🧩 完整文件速查
 
 | 文件 | 功能 | 核心技术 |
